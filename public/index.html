@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hesap Takip</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Giriş Ekranı -->
+  <div id="login-screen" class="screen">
+    <div class="login-card">
+      <h1>Hesap Takip</h1>
+      <p class="subtitle">Restoran hesabını kolayca paylaş</p>
+
+      <div class="input-group">
+        <label for="user-name">Adın</label>
+        <input type="text" id="user-name" placeholder="İsmini gir..." maxlength="20">
+      </div>
+
+      <button id="btn-create" class="btn btn-primary">Yeni Masa Oluştur</button>
+
+      <div class="divider"><span>veya</span></div>
+
+      <div class="input-group">
+        <label for="session-code">Masa Kodu</label>
+        <input type="text" id="session-code" placeholder="Örn: A1B2C3" maxlength="6">
+      </div>
+
+      <button id="btn-join" class="btn btn-secondary">Masaya Katıl</button>
+
+      <p id="error-msg" class="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- Ana Uygulama Ekranı -->
+  <div id="app-screen" class="screen hidden">
+    <header>
+      <div class="header-left">
+        <h2>Masa: <span id="session-id"></span></h2>
+      </div>
+      <div class="header-right">
+        <span id="current-user"></span>
+        <button id="btn-copy-code" class="btn btn-small" title="Kodu kopyala">Paylaş</button>
+      </div>
+    </header>
+
+    <!-- Ürün Ekleme -->
+    <div class="add-item-bar">
+      <input type="text" id="item-name" placeholder="Ürün adı..." maxlength="40" list="item-suggestions" autocomplete="off">
+      <datalist id="item-suggestions"></datalist>
+      <input type="number" id="item-price" placeholder="Fiyat" min="0" step="0.50">
+      <button id="btn-add-item" class="btn btn-primary">Ekle</button>
+    </div>
+
+    <!-- Kişilerin Listesi -->
+    <div id="users-container"></div>
+
+    <!-- Genel Toplam -->
+    <div class="total-bar">
+      <span>Genel Toplam:</span>
+      <span id="grand-total">0.00 TL</span>
+    </div>
+  </div>
+
+  <div id="copy-toast" class="toast hidden">Kod kopyalandı!</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
