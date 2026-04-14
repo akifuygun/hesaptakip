@@ -41,15 +41,18 @@
       </div>
       <div class="header-right">
         <span id="current-user"></span>
-        <button id="btn-copy-code" class="btn btn-small" title="Kodu kopyala">Paylaş</button>
+        <button id="btn-copy-code" class="btn btn-small">Paylaş</button>
+        <button id="btn-new-table" class="btn btn-small">Yeni Masa</button>
       </div>
     </header>
 
     <!-- Ürün Ekleme -->
     <div class="add-item-bar">
-      <input type="text" id="item-name" placeholder="Ürün adı..." maxlength="40" list="item-suggestions" autocomplete="off">
-      <datalist id="item-suggestions"></datalist>
-      <input type="number" id="item-price" placeholder="Fiyat" min="0" step="0.50">
+      <div class="input-wrapper">
+        <input type="text" id="item-name" placeholder="Ürün adı..." maxlength="40" autocomplete="off">
+        <ul id="suggestions-list" class="suggestions-list hidden"></ul>
+      </div>
+      <input type="tel" id="item-price" placeholder="Fiyat" inputmode="numeric" pattern="[0-9]*">
       <button id="btn-add-item" class="btn btn-primary">Ekle</button>
     </div>
 

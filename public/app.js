@@ -17,16 +17,22 @@ const btnAddItem = document.getElementById('btn-add-item');
 const usersContainer = document.getElementById('users-container');
 const grandTotalSpan = document.getElementById('grand-total');
 const copyToast = document.getElementById('copy-toast');
-const itemSuggestions = document.getElementById('item-suggestions');
+const suggestionsList = document.getElementById('suggestions-list');
 
 let myName = '';
 // Ürün adı -> son fiyat eşleştirmesi
 const itemPriceMap = new Map();
 
-// URL'den masa kodu kontrolü
+// Otomatik yeniden katılma (localStorage)
+const saved = JSON.parse(localStorage.getItem('hesaptakip') || 'null');
 const urlParams = new URLSearchParams(window.location.search);
 const masaParam = urlParams.get('masa');
-if (masaParam) {
+
+if (saved && saved.token && (!masaParam || masaParam.toUpperCase() === saved.sessionId)) {
+  // Kayıtlı session varsa token ile otomatik katıl
+  socket.emit('join-session', { sessionId: saved.sessionId, userName: saved.userName, token: saved.token });
+} else if (masaParam) {
+  // URL'den gelen yeni masa kodu
   sessionCodeInput.value = masaParam.toUpperCase();
   document.getElementById('btn-create').classList.add('hidden');
   document.querySelector('.divider').classList.add('hidden');
@@ -34,7 +40,6 @@ if (masaParam) {
   document.querySelector('.login-card .subtitle').textContent = 'Masaya katılmak için adını gir';
   btnJoin.classList.remove('btn-secondary');
   btnJoin.classList.add('btn-primary');
-  // Enter ile direkt katıl
   userNameInput.addEventListener('keydown', function joinKey(e) {
     if (e.key === 'Enter') {
       e.stopImmediatePropagation();
@@ -78,13 +83,14 @@ sessionCodeInput.addEventListener('keydown', (e) => {
 });
 
 // Session'a katılma başarılı
-socket.on('session-joined', ({ sessionId, userName, session }) => {
+socket.on('session-joined', ({ sessionId, userName, token, session }) => {
   myName = userName;
   sessionIdSpan.textContent = sessionId;
   currentUserSpan.textContent = userName;
   loginScreen.classList.add('hidden');
   appScreen.classList.remove('hidden');
   history.replaceState(null, '', '?masa=' + sessionId);
+  localStorage.setItem('hesaptakip', JSON.stringify({ sessionId, userName, token }));
   renderSession(session);
 });
 
@@ -95,7 +101,13 @@ socket.on('session-updated', (session) => {
 
 // Hata mesajı
 socket.on('error-msg', (msg) => {
+  localStorage.removeItem('hesaptakip');
   showError(msg);
+});
+
+// Fiyat alanında sadece rakam
+itemPriceInput.addEventListener('input', () => {
+  itemPriceInput.value = itemPriceInput.value.replace(/[^0-9]/g, '');
 });
 
 // Ürün ekle
@@ -109,13 +121,47 @@ itemPriceInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') addItem();
 });
 
-// Öneri seçilince fiyatı otomatik doldur
+// Önerileri göster/filtrele
 itemNameInput.addEventListener('input', () => {
-  const saved = itemPriceMap.get(itemNameInput.value.trim());
-  if (saved && !itemPriceInput.value) {
-    itemPriceInput.value = saved;
+  showSuggestions();
+});
+
+itemNameInput.addEventListener('focus', () => {
+  showSuggestions();
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.input-wrapper')) {
+    suggestionsList.classList.add('hidden');
   }
 });
+
+function showSuggestions() {
+  const val = itemNameInput.value.trim().toLowerCase();
+  const items = Array.from(itemPriceMap.keys()).filter(
+    (name) => !val || name.toLowerCase().includes(val)
+  );
+
+  if (items.length === 0) {
+    suggestionsList.classList.add('hidden');
+    return;
+  }
+
+  suggestionsList.innerHTML = '';
+  for (const name of items) {
+    const li = document.createElement('li');
+    const price = itemPriceMap.get(name);
+    li.textContent = price > 0 ? `${name} — ${price.toFixed(2)} TL` : name;
+    li.addEventListener('click', () => {
+      itemNameInput.value = name;
+      if (price > 0) itemPriceInput.value = price;
+      suggestionsList.classList.add('hidden');
+      itemPriceInput.focus();
+    });
+    suggestionsList.appendChild(li);
+  }
+  suggestionsList.classList.remove('hidden');
+}
 
 function addItem() {
   const name = itemNameInput.value.trim();
@@ -134,12 +180,24 @@ function addItem() {
 }
 
 // URL'yi paylaş
-btnCopyCode.addEventListener('click', () => {
+btnCopyCode.addEventListener('click', async () => {
   const code = sessionIdSpan.textContent;
   const url = window.location.origin + '?masa=' + code;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast();
-  });
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Hesap Takip', text: 'Masaya katıl!', url });
+    } catch (e) { /* kullanıcı iptal etti */ }
+  } else {
+    navigator.clipboard.writeText(url).then(() => showToast());
+  }
+});
+
+// Yeni masa
+document.getElementById('btn-new-table').addEventListener('click', () => {
+  localStorage.removeItem('hesaptakip');
+  history.replaceState(null, '', window.location.pathname);
+  location.reload();
 });
 
 // Session'ı render et
@@ -156,12 +214,7 @@ function renderSession(session) {
       }
     }
   }
-  itemSuggestions.innerHTML = '';
-  for (const name of itemPriceMap.keys()) {
-    const opt = document.createElement('option');
-    opt.value = name;
-    itemSuggestions.appendChild(opt);
-  }
+  // Öneriler itemPriceMap'ten okunur, ayrı render gerekmez
 
   // Kendi kartımı en üste koy
   const sortedUsers = Object.keys(session.users).sort((a, b) => {
@@ -186,20 +239,23 @@ function renderSession(session) {
     } else {
       itemsHTML = '<ul class="user-items">';
       for (const item of items) {
-        const removeBtn = isMe
-          ? `<button class="btn-remove" data-id="${item.id}" title="Sil">&times;</button>`
-          : '';
         const qty = item.quantity || 1;
         const lineTotal = item.price * qty;
-        const qtyLabel = qty > 1 ? `<span class="item-qty">x${qty}</span>` : '';
         const priceLabel = item.price > 0
-          ? `<span class="item-price">${qty > 1 ? lineTotal.toFixed(2) : item.price.toFixed(2)} TL</span>`
+          ? `<span class="item-price">${lineTotal.toFixed(2)} TL</span>`
           : '';
+        const controls = isMe
+          ? `<div class="qty-controls">
+               <button class="btn-qty btn-minus" data-id="${item.id}">-</button>
+               <span class="qty-value">${qty}</span>
+               <button class="btn-qty btn-plus" data-id="${item.id}">+</button>
+             </div>`
+          : (qty > 1 ? `<span class="item-qty">x${qty}</span>` : '');
         itemsHTML += `
           <li>
-            <span class="item-name">${escapeHtml(item.name)} ${qtyLabel}</span>
+            <span class="item-name">${escapeHtml(item.name)}</span>
             ${priceLabel}
-            ${removeBtn}
+            ${controls}
           </li>`;
       }
       itemsHTML += '</ul>';
@@ -213,9 +269,14 @@ function renderSession(session) {
       ${itemsHTML}
     `;
 
-    // Silme butonlarına event ekle
+    // +/- butonlarına event ekle
     if (isMe) {
-      card.querySelectorAll('.btn-remove').forEach((btn) => {
+      card.querySelectorAll('.btn-plus').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          socket.emit('increment-item', btn.dataset.id);
+        });
+      });
+      card.querySelectorAll('.btn-minus').forEach((btn) => {
         btn.addEventListener('click', () => {
           socket.emit('remove-item', btn.dataset.id);
         });

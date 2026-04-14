@@ -60,7 +60,7 @@ body {
 }
 
 input[type="text"],
-input[type="number"] {
+input[type="tel"] {
   width: 100%;
   padding: 12px 14px;
   border: 2px solid #e0e0e0;
@@ -191,19 +191,58 @@ header h2 {
 /* Ürün Ekleme */
 .add-item-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 16px 20px;
   background: #fff;
   border-bottom: 1px solid #e8e8e8;
 }
 
-.add-item-bar input[type="text"] {
-  flex: 2;
+.input-wrapper {
+  position: relative;
+  flex: 1 1 100%;
 }
 
-.add-item-bar input[type="number"] {
-  flex: 1;
-  min-width: 80px;
+.input-wrapper input[type="text"] {
+  width: 100%;
+}
+
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  margin-top: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 50;
+  list-style: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.suggestions-list li {
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.suggestions-list li:last-child {
+  border-bottom: none;
+}
+
+.suggestions-list li:hover,
+.suggestions-list li:active {
+  background: #f0f4ff;
+  color: #4361ee;
+}
+
+.add-item-bar input[type="tel"] {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .add-item-bar .btn {
@@ -291,19 +330,53 @@ header h2 {
   margin-left: 12px;
 }
 
-.btn-remove {
-  background: none;
-  border: none;
-  color: #ccc;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 0 0 0 12px;
-  line-height: 1;
-  transition: color 0.2s;
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  flex-shrink: 0;
 }
 
-.btn-remove:hover {
-  color: #e63946;
+.btn-qty {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  line-height: 1;
+}
+
+.btn-plus {
+  background: #4361ee;
+  color: #fff;
+}
+
+.btn-plus:hover {
+  background: #3a56d4;
+}
+
+.btn-minus {
+  background: #e8e8e8;
+  color: #333;
+}
+
+.btn-minus:hover {
+  background: #e63946;
+  color: #fff;
+}
+
+.qty-value {
+  font-weight: 700;
+  font-size: 14px;
+  min-width: 20px;
+  text-align: center;
 }
 
 .empty-msg {
@@ -371,7 +444,7 @@ header h2 {
     flex: 1 1 100%;
   }
 
-  .add-item-bar input[type="number"] {
+  .add-item-bar input[type="tel"] {
     flex: 1;
   }
 }

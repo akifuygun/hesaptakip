@@ -2,17 +2,6 @@
 
 Restoranda herkesin yediği içtiği şeyleri kolayca takip edebileceği gerçek zamanlı web uygulaması.
 
-## Özellikler
-
-- **Masa oluştur** — İsmini gir, yeni bir masa aç
-- **Link ile paylaş** — Arkadaşlarına masa linkini gönder, direkt katılsınlar
-- **Ürün ekle/sil** — Herkes kendi siparişlerini yönetir
-- **Adet takibi** — Aynı ürün tekrar eklenince adet artar
-- **Otomatik öneri** — Daha önce girilen ürünler önerilir, fiyat otomatik dolar
-- **Gerçek zamanlı** — Tüm değişiklikler anında herkese yansır
-- **Kişi bazlı toplam** — Herkesin ne kadar harcadığı görünür
-- **Genel toplam** — Masanın toplam hesabı alt barda gösterilir
-
 ## Kurulum
 
 ```bash
@@ -27,3 +16,28 @@ Uygulama `http://localhost:3000` adresinde çalışır.
 - Node.js + Express
 - Socket.io
 - HTML / CSS / JavaScript
+
+---
+
+## v1.0 — Temel Uygulama
+
+- Masa oluşturma ve paylaşma (6 haneli kod ile)
+- Session'a isim girerek katılma
+- Kişi bazlı ürün ekleme ve silme
+- Aynı ürün eklenince adet artırma
+- Daha önce girilen ürünlerin önerilmesi ve fiyat otomatik doldurma
+- Socket.io ile gerçek zamanlı güncelleme
+- Kişi bazlı toplam ve genel toplam hesaplama
+- Fiyat girişi opsiyonel
+
+## v1.1 — İyileştirmeler
+
+- Paylaş butonu URL üretiyor, mobilde native paylaş menüsü açılıyor
+- Ürün satırlarında +/- butonları ile adet artırma/azaltma
+- Mobil uyumlu öneri dropdown'ı (Android Firefox desteği)
+- Ürün ekleme alanı iki satıra ayrıldı (mobilde daha rahat kullanım)
+- Sayfa yenilenince otomatik yeniden katılma (localStorage + token ile oturum koruması)
+- Token bazlı kullanıcı doğrulama (başka cihazdan aynı isimle giriş engellenir)
+- Fiyat kutusuna sadece rakam girişi
+- Yeni Masa butonu
+- Railway deploy desteği
