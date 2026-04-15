@@ -41,3 +41,15 @@ Uygulama `http://localhost:3000` adresinde çalışır.
 - Fiyat kutusuna sadece rakam girişi
 - Yeni Masa butonu
 - Railway deploy desteği
+
+## v1.2 — Masa Modları ve Kararlı Oturumlar
+
+- 4 farklı masa modu: Standart, Yönetici, Anonim, Hibrit
+- Masa sahibi kişi ekleme yetkisi (+ butonu ile toggle)
+- Başkasına ürün ekleme (Kime? dropdown ile hedef kullanıcı seçimi)
+- Yönetici badge (Y) ve mod badge (tooltip ile açıklama)
+- Header yeniden tasarlandı: ikon butonlar, kompakt düzen, ₺ logosu
+- Session'lar dosyaya kaydediliyor (sunucu restart'a dayanıklı)
+- Cookie + localStorage ile çift katmanlı oturum koruması
+- Socket.io auth middleware ile otomatik yeniden bağlanma
+- PWA desteği: ana ekrana eklenebilir, offline cache

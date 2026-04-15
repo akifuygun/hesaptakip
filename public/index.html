@@ -23,6 +23,32 @@
         <input type="text" id="user-name" placeholder="İsmini gir..." maxlength="20">
       </div>
 
+      <div class="input-group" id="mode-group">
+        <label>Masa Modu</label>
+        <div class="mode-selector">
+          <label class="mode-option selected" data-mode="standard">
+            <input type="radio" name="mode" value="standard" checked>
+            <span class="mode-title">Standart</span>
+            <span class="mode-desc">Herkes kendi hesabını yönetir</span>
+          </label>
+          <label class="mode-option" data-mode="admin">
+            <input type="radio" name="mode" value="admin">
+            <span class="mode-title">Yönetici</span>
+            <span class="mode-desc">Sadece sen herkesin hesabını yönetir</span>
+          </label>
+          <label class="mode-option" data-mode="anonymous">
+            <input type="radio" name="mode" value="anonymous">
+            <span class="mode-title">Anonim</span>
+            <span class="mode-desc">Herkes herkese ürün ekleyebilir</span>
+          </label>
+          <label class="mode-option" data-mode="hybrid">
+            <input type="radio" name="mode" value="hybrid">
+            <span class="mode-title">Hibrit</span>
+            <span class="mode-desc">Sen herkese, diğerleri sadece kendine</span>
+          </label>
+        </div>
+      </div>
+
       <button id="btn-create" class="btn btn-primary">Yeni Masa Oluştur</button>
 
       <div class="divider"><span>veya</span></div>
@@ -41,24 +67,51 @@
   <!-- Ana Uygulama Ekranı -->
   <div id="app-screen" class="screen hidden">
     <header>
-      <div class="header-left">
-        <h2>Masa: <span id="session-id"></span></h2>
-      </div>
-      <div class="header-right">
-        <span id="current-user"></span>
-        <button id="btn-copy-code" class="btn btn-small">Paylaş</button>
-        <button id="btn-new-table" class="btn btn-small">Yeni Masa</button>
+      <div class="header-row">
+        <div class="header-info">
+          <span class="header-logo" title="Hesap Takip">₺</span>
+          <span class="header-code" id="session-id"></span>
+          <div class="mode-badge-wrapper">
+            <span id="mode-badge" class="mode-badge"></span>
+            <span id="mode-tooltip" class="mode-tooltip hidden"></span>
+          </div>
+        </div>
+        <div class="header-user" id="current-user"></div>
+        <div class="header-actions">
+          <button id="btn-toggle-add-user" class="header-btn hidden" title="Kişi ekle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+          </button>
+          <button id="btn-copy-code" class="header-btn" title="Paylaş">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" stroke="currentColor" stroke-width="1.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+          <button id="btn-new-table" class="header-btn" title="Yeni Masa">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="4" x2="15" y2="18"/><circle cx="19" cy="17" r="4.5" fill="#16213e" stroke="#16213e"/><line x1="19" y1="15" x2="19" y2="19" stroke="#fff" stroke-width="1.5"/><line x1="17" y1="17" x2="21" y2="17" stroke="#fff" stroke-width="1.5"/></svg>
+          </button>
+        </div>
       </div>
     </header>
 
+    <!-- Kişi Ekleme (toggle) -->
+    <div id="add-user-bar" class="add-user-bar hidden">
+      <input type="text" id="new-user-name" placeholder="Kişi adı..." maxlength="20">
+      <button id="btn-add-user" class="btn btn-primary">Ekle</button>
+    </div>
+
     <!-- Ürün Ekleme -->
     <div class="add-item-bar">
-      <div class="input-wrapper">
-        <input type="text" id="item-name" placeholder="Ürün adı..." maxlength="40" autocomplete="off">
-        <ul id="suggestions-list" class="suggestions-list hidden"></ul>
+      <div class="add-item-row-top">
+        <div class="input-wrapper">
+          <input type="text" id="item-name" placeholder="Ürün adı..." maxlength="40" autocomplete="off">
+          <ul id="suggestions-list" class="suggestions-list hidden"></ul>
+        </div>
+        <select id="target-user" class="hidden">
+          <option value="">Kime? (Opsiyonel)</option>
+        </select>
       </div>
-      <input type="tel" id="item-price" placeholder="Fiyat" inputmode="numeric" pattern="[0-9]*">
-      <button id="btn-add-item" class="btn btn-primary">Ekle</button>
+      <div class="add-item-row-bottom">
+        <input type="tel" id="item-price" placeholder="Fiyat (Opsiyonel)" inputmode="numeric" pattern="[0-9]*">
+        <button id="btn-add-item" class="btn btn-primary">Ekle</button>
+      </div>
     </div>
 
     <!-- Kişilerin Listesi -->
