@@ -259,6 +259,8 @@ header {
   background: #16213e;
   color: #fff;
   padding: 10px 16px;
+  position: relative;
+  z-index: 80;
 }
 
 .header-row {
@@ -281,11 +283,65 @@ header {
   cursor: pointer;
 }
 
+.session-name-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
 .header-code {
   font-size: 16px;
   font-weight: 700;
   color: #7ecfff;
   letter-spacing: 2px;
+}
+
+.session-alias {
+  font-size: 16px;
+  font-weight: 700;
+  color: #7ecfff;
+  letter-spacing: 2px;
+}
+
+.session-code-secondary {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+.session-code-secondary::before {
+  content: '(';
+}
+
+.session-code-secondary::after {
+  content: ')';
+}
+
+.alias-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  gap: 6px;
+  background: #fff;
+  padding: 8px;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 70;
+}
+
+.alias-popup input {
+  width: 140px;
+  font-size: 13px;
+}
+
+.alias-popup .btn {
+  width: auto;
+  padding: 6px 14px;
+  font-size: 13px;
 }
 
 .header-user {

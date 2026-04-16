@@ -158,6 +158,7 @@ socket.on('session-joined', ({ sessionId, userName, token, session }) => {
   sessionIdSpan.textContent = sessionId;
   currentUserSpan.textContent = userName;
   socket.auth = { sessionId, userName, token };
+  updateAlias(session.alias);
   modeBadge.textContent = MODE_LABELS[sessionMode];
   document.getElementById('mode-tooltip').textContent = MODE_DESCRIPTIONS[sessionMode];
   loginScreen.classList.add('hidden');
@@ -171,6 +172,7 @@ socket.on('session-joined', ({ sessionId, userName, token, session }) => {
 socket.on('session-updated', (session) => {
   sessionMode = session.mode;
   sessionOwner = session.owner;
+  updateAlias(session.alias);
   renderSession(session);
 });
 
@@ -309,6 +311,51 @@ function shouldShowTargetSelect() {
   if (sessionMode === 'hybrid' && myName === sessionOwner) return true;
   return false;
 }
+
+// Masa takma adı
+const sessionAlias = document.getElementById('session-alias');
+const aliasPopup = document.getElementById('alias-popup');
+const aliasInput = document.getElementById('alias-input');
+const btnAliasSave = document.getElementById('btn-alias-save');
+
+function updateAlias(alias) {
+  if (alias) {
+    sessionAlias.textContent = alias;
+    sessionAlias.classList.remove('hidden');
+    sessionIdSpan.classList.add('session-code-secondary');
+    sessionIdSpan.classList.remove('header-code');
+  } else {
+    sessionAlias.classList.add('hidden');
+    sessionIdSpan.classList.remove('session-code-secondary');
+    sessionIdSpan.classList.add('header-code');
+  }
+}
+
+// Masa koduna tıklayınca popup aç
+document.querySelector('.session-name-wrapper').addEventListener('click', (e) => {
+  if (e.target.closest('.alias-popup')) return;
+  aliasPopup.classList.toggle('hidden');
+  if (!aliasPopup.classList.contains('hidden')) {
+    aliasInput.value = sessionAlias.textContent || '';
+    aliasInput.focus();
+  }
+});
+
+btnAliasSave.addEventListener('click', () => {
+  socket.emit('set-alias', aliasInput.value.trim());
+  aliasPopup.classList.add('hidden');
+});
+
+aliasInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') btnAliasSave.click();
+  if (e.key === 'Escape') aliasPopup.classList.add('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.session-name-wrapper')) {
+    aliasPopup.classList.add('hidden');
+  }
+});
 
 // Mod badge tıklanınca açıklama göster
 modeBadge.addEventListener('click', () => {

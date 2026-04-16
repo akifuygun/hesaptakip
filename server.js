@@ -69,6 +69,7 @@ function generateSessionId() {
 function getPublicSession(session) {
   return {
     id: session.id,
+    alias: session.alias || '',
     users: session.users,
     mode: session.mode,
     owner: session.owner,
@@ -279,6 +280,17 @@ io.on('connection', (socket) => {
       }
     }
 
+    saveSession(session);
+    io.to(currentSession).emit('session-updated', getPublicSession(session));
+  });
+
+  // Masa takma adı
+  socket.on('set-alias', (alias) => {
+    if (!currentSession || !currentUser) return;
+    const session = getSession(currentSession);
+    if (!session) return;
+
+    session.alias = (alias || '').trim().substring(0, 20);
     saveSession(session);
     io.to(currentSession).emit('session-updated', getPublicSession(session));
   });

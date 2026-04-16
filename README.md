@@ -60,3 +60,5 @@ Uygulama `http://localhost:3000` adresinde çalışır.
 - Masa sahibi oturumu sonlandırabilir (tüm kullanıcılar çıkarılır, masa silinir)
 - Masa sahibi kişileri masadan çıkarabilir (onay ile)
 - Çıkarılan kullanıcı otomatik login ekranına yönlendirilir
+- Masa takma adı: herkes masa koduna tıklayarak takma ad verebilir
+- Takma ad eklenince öne geçer, masa kodu küçük parantez içinde kalır

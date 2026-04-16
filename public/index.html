@@ -70,7 +70,14 @@
       <div class="header-row">
         <div class="header-info">
           <span class="header-logo" title="Hesap Takip">₺</span>
-          <span class="header-code" id="session-id"></span>
+          <div class="session-name-wrapper">
+            <span class="session-alias hidden" id="session-alias"></span>
+            <span class="header-code" id="session-id"></span>
+            <div id="alias-popup" class="alias-popup hidden">
+              <input type="text" id="alias-input" placeholder="Masa adı..." maxlength="20">
+              <button id="btn-alias-save" class="btn btn-primary">Kaydet</button>
+            </div>
+          </div>
           <div class="mode-badge-wrapper">
             <span id="mode-badge" class="mode-badge"></span>
             <span id="mode-tooltip" class="mode-tooltip hidden"></span>
