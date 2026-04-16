@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const crypto = require('crypto');
 const path = require('path');
-const fs = require('fs');
+const Database = require('better-sqlite3');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,46 +11,61 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session dosyası
-const DATA_FILE = path.join(__dirname, 'sessions.json');
+// --- SQLite ---
+const db = new Database(path.join(__dirname, 'hesaptakip.db'));
+db.pragma('journal_mode = WAL');
 
-// Session'ları dosyadan yükle
-function loadSessions() {
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )
+`);
+
+const TTL = 24 * 60 * 60 * 1000; // 1 gün
+
+// Süresi dolan session'ları temizle
+function cleanExpired() {
+  const cutoff = Date.now() - TTL;
+  const deleted = db.prepare('DELETE FROM sessions WHERE created_at < ?').run(cutoff);
+  if (deleted.changes > 0) {
+    console.log(`${deleted.changes} süresi dolmuş session temizlendi`);
+  }
+}
+
+// Başlangıçta ve her 10 dakikada temizle
+cleanExpired();
+setInterval(cleanExpired, 10 * 60 * 1000);
+
+// DB yardımcıları
+const stmtGet = db.prepare('SELECT data FROM sessions WHERE id = ?');
+const stmtUpsert = db.prepare('INSERT OR REPLACE INTO sessions (id, data, created_at) VALUES (?, ?, ?)');
+const stmtDelete = db.prepare('DELETE FROM sessions WHERE id = ?');
+
+function getSession(id) {
+  const row = stmtGet.get(id);
+  if (!row) return null;
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-      return new Map(Object.entries(data));
+    const session = JSON.parse(row.data);
+    if (Date.now() - session.createdAt > TTL) {
+      stmtDelete.run(id);
+      return null;
     }
-  } catch (e) {
-    console.error('Session dosyası okunamadı:', e.message);
-  }
-  return new Map();
+    return session;
+  } catch { return null; }
 }
 
-// Session'ları dosyaya kaydet
-function saveSessions() {
-  try {
-    const obj = Object.fromEntries(sessions);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(obj));
-  } catch (e) {
-    console.error('Session dosyası yazılamadı:', e.message);
-  }
+function saveSession(session) {
+  stmtUpsert.run(session.id, JSON.stringify(session), session.createdAt);
 }
 
-const sessions = loadSessions();
-
-// Her değişiklikte kaydet (debounced)
-let saveTimeout = null;
-function scheduleSave() {
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveSessions, 1000);
-}
+// --- Uygulama ---
 
 function generateSessionId() {
   return crypto.randomBytes(3).toString('hex').toUpperCase();
 }
 
-// Token'ları client'a göndermemek için
 function getPublicSession(session) {
   return {
     id: session.id,
@@ -61,7 +76,6 @@ function getPublicSession(session) {
   };
 }
 
-// Yetki kontrolü
 function canManage(session, actor, target) {
   switch (session.mode) {
     case 'standard': return actor === target;
@@ -72,11 +86,11 @@ function canManage(session, actor, target) {
   }
 }
 
-// Socket bağlantısında auth ile otomatik oturum kur
+// Socket auth middleware
 io.use((socket, next) => {
   const { sessionId, userName, token } = socket.handshake.auth || {};
   if (sessionId && userName && token) {
-    const session = sessions.get(sessionId.toUpperCase());
+    const session = getSession(sessionId.toUpperCase());
     if (session && session.users[userName] !== undefined && session.tokens[userName] === token) {
       socket.sessionId = session.id;
       socket.userName = userName;
@@ -89,9 +103,9 @@ io.on('connection', (socket) => {
   let currentSession = socket.sessionId || null;
   let currentUser = socket.userName || null;
 
-  // Auth ile gelen kullanıcıyı otomatik odaya al ve veriyi gönder
+  // Auth ile gelen kullanıcıyı otomatik odaya al
   if (currentSession && currentUser) {
-    const session = sessions.get(currentSession);
+    const session = getSession(currentSession);
     if (session) {
       socket.join(currentSession);
       socket.emit('session-joined', {
@@ -120,8 +134,7 @@ io.on('connection', (socket) => {
     };
     session.users[userName] = [];
     session.tokens[userName] = token;
-    sessions.set(sessionId, session);
-    scheduleSave();
+    saveSession(session);
 
     currentSession = sessionId;
     currentUser = userName;
@@ -132,13 +145,12 @@ io.on('connection', (socket) => {
 
   // Mevcut session'a katıl
   socket.on('join-session', ({ sessionId, userName, token }) => {
-    const session = sessions.get(sessionId.toUpperCase());
+    const session = getSession(sessionId.toUpperCase());
     if (!session) {
       socket.emit('error-msg', 'Session bulunamadı!');
       return;
     }
 
-    // Aynı isimle tekrar katılma (rejoin) — token kontrolü
     if (session.users[userName] !== undefined) {
       if (token && session.tokens[userName] !== token) {
         socket.emit('error-msg', 'Bu isim başka biri tarafından kullanılıyor!');
@@ -161,7 +173,7 @@ io.on('connection', (socket) => {
     currentSession = session.id;
     currentUser = userName;
     socket.join(session.id);
-    scheduleSave();
+    saveSession(session);
 
     socket.emit('session-joined', { sessionId: session.id, userName, token: newToken, session: getPublicSession(session) });
     socket.to(session.id).emit('session-updated', getPublicSession(session));
@@ -170,7 +182,7 @@ io.on('connection', (socket) => {
   // Masa sahibi yeni kişi ekler
   socket.on('add-user', (userName) => {
     if (!currentSession || !currentUser) return;
-    const session = sessions.get(currentSession);
+    const session = getSession(currentSession);
     if (!session) return;
     if (currentUser !== session.owner) return;
     if (session.users[userName] !== undefined) {
@@ -179,14 +191,30 @@ io.on('connection', (socket) => {
     }
 
     session.users[userName] = [];
-    scheduleSave();
+    saveSession(session);
     io.to(currentSession).emit('session-updated', getPublicSession(session));
+  });
+
+  // Kişiyi masadan çıkar (sadece masa sahibi)
+  socket.on('remove-user', (userName) => {
+    if (!currentSession || !currentUser) return;
+    const session = getSession(currentSession);
+    if (!session) return;
+    if (currentUser !== session.owner) return;
+    if (userName === session.owner) return;
+    if (session.users[userName] === undefined) return;
+
+    delete session.users[userName];
+    delete session.tokens[userName];
+    saveSession(session);
+    io.to(currentSession).emit('session-updated', getPublicSession(session));
+    io.to(currentSession).emit('user-removed', userName);
   });
 
   // Yeni ürün ekle
   socket.on('add-item', ({ name, price, targetUser }) => {
     if (!currentSession || !currentUser) return;
-    const session = sessions.get(currentSession);
+    const session = getSession(currentSession);
     if (!session) return;
 
     const target = targetUser || currentUser;
@@ -209,14 +237,14 @@ io.on('connection', (socket) => {
       });
     }
 
-    scheduleSave();
+    saveSession(session);
     io.to(currentSession).emit('session-updated', getPublicSession(session));
   });
 
   // Ürün adedi artır
   socket.on('increment-item', ({ itemId, targetUser }) => {
     if (!currentSession || !currentUser) return;
-    const session = sessions.get(currentSession);
+    const session = getSession(currentSession);
     if (!session) return;
 
     const target = targetUser || currentUser;
@@ -226,7 +254,7 @@ io.on('connection', (socket) => {
     const item = session.users[target].find((i) => i.id === itemId);
     if (item) {
       item.quantity += 1;
-      scheduleSave();
+      saveSession(session);
       io.to(currentSession).emit('session-updated', getPublicSession(session));
     }
   });
@@ -234,7 +262,7 @@ io.on('connection', (socket) => {
   // Ürün sil / azalt
   socket.on('remove-item', ({ itemId, targetUser }) => {
     if (!currentSession || !currentUser) return;
-    const session = sessions.get(currentSession);
+    const session = getSession(currentSession);
     if (!session) return;
 
     const target = targetUser || currentUser;
@@ -251,18 +279,25 @@ io.on('connection', (socket) => {
       }
     }
 
-    scheduleSave();
+    saveSession(session);
     io.to(currentSession).emit('session-updated', getPublicSession(session));
+  });
+
+  // Oturumu sonlandır (sadece masa sahibi)
+  socket.on('end-session', () => {
+    if (!currentSession || !currentUser) return;
+    const session = getSession(currentSession);
+    if (!session) return;
+    if (currentUser !== session.owner) return;
+
+    stmtDelete.run(currentSession);
+    io.to(currentSession).emit('session-ended');
   });
 
   socket.on('disconnect', () => {
     // Kullanıcıyı silmiyoruz, verileri korunur
   });
 });
-
-// Kapatılırken kaydet
-process.on('SIGTERM', () => { saveSessions(); process.exit(0); });
-process.on('SIGINT', () => { saveSessions(); process.exit(0); });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

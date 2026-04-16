@@ -182,6 +182,15 @@ socket.on('error-msg', (msg) => {
   showError(msg);
 });
 
+// Kullanıcı masadan çıkarıldı
+socket.on('user-removed', (userName) => {
+  if (userName === myName) {
+    clearSession();
+    history.replaceState(null, '', window.location.pathname);
+    location.reload();
+  }
+});
+
 // Kişi ekleme
 const addUserBar = document.getElementById('add-user-bar');
 const newUserNameInput = document.getElementById('new-user-name');
@@ -331,17 +340,34 @@ document.getElementById('btn-new-table').addEventListener('click', () => {
   location.reload();
 });
 
+// Oturumu sonlandır (sadece masa sahibi)
+document.getElementById('btn-end-session').addEventListener('click', () => {
+  if (confirm('Masa tamamen silinecek ve tüm kullanıcılar çıkarılacak. Emin misin?')) {
+    socket.emit('end-session');
+  }
+});
+
+// Oturum sonlandırıldı (tüm kullanıcılara)
+socket.on('session-ended', () => {
+  clearSession();
+  history.replaceState(null, '', window.location.pathname);
+  location.reload();
+});
+
 // Session'ı render et
 function renderSession(session) {
   usersContainer.innerHTML = '';
   let grandTotal = 0;
 
-  // Masa sahibi + butonunu görsün
-  if (myName === session.owner) {
+  // Masa sahibine özel butonlar
+  const isOwner = myName === session.owner;
+  if (isOwner) {
     btnToggleAddUser.classList.remove('hidden');
+    document.getElementById('btn-end-session').classList.remove('hidden');
   } else {
     btnToggleAddUser.classList.add('hidden');
     addUserBar.classList.add('hidden');
+    document.getElementById('btn-end-session').classList.add('hidden');
   }
 
   // Öneri listesini güncelle
@@ -419,10 +445,19 @@ function renderSession(session) {
     }
 
     const ownerBadge = isOwner ? ' <span class="owner-badge">Y</span>' : '';
+    const canRemoveUser = myName === session.owner && !isMe && !isOwner;
+    const removeUserBtn = canRemoveUser
+      ? `<button class="btn-remove-user" data-user="${escapeHtml(userName)}" title="Kişiyi çıkar">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+         </button>`
+      : '';
 
     card.innerHTML = `
       <div class="user-card-header">
-        <span class="user-name ${isMe ? 'me' : ''}">${escapeHtml(userName)}${isMe ? ' (Sen)' : ''}${ownerBadge}</span>
+        <div class="user-card-left">
+          ${removeUserBtn}
+          <span class="user-name ${isMe ? 'me' : ''}">${escapeHtml(userName)}${isMe ? ' (Sen)' : ''}${ownerBadge}</span>
+        </div>
         <span class="user-total">${userTotal.toFixed(2)} TL</span>
       </div>
       ${itemsHTML}
@@ -437,6 +472,14 @@ function renderSession(session) {
     card.querySelectorAll('.btn-minus').forEach((btn) => {
       btn.addEventListener('click', () => {
         socket.emit('remove-item', { itemId: btn.dataset.id, targetUser: btn.dataset.user });
+      });
+    });
+    card.querySelectorAll('.btn-remove-user').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const user = btn.dataset.user;
+        if (confirm(`"${user}" masadan çıkarılacak. Emin misin?`)) {
+          socket.emit('remove-user', user);
+        }
       });
     });
 

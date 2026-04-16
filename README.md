@@ -15,6 +15,7 @@ Uygulama `http://localhost:3000` adresinde çalışır.
 
 - Node.js + Express
 - Socket.io
+- SQLite (better-sqlite3)
 - HTML / CSS / JavaScript
 
 ---
@@ -40,7 +41,6 @@ Uygulama `http://localhost:3000` adresinde çalışır.
 - Token bazlı kullanıcı doğrulama (başka cihazdan aynı isimle giriş engellenir)
 - Fiyat kutusuna sadece rakam girişi
 - Yeni Masa butonu
-- Railway deploy desteği
 
 ## v1.2 — Masa Modları ve Kararlı Oturumlar
 
@@ -49,7 +49,14 @@ Uygulama `http://localhost:3000` adresinde çalışır.
 - Başkasına ürün ekleme (Kime? dropdown ile hedef kullanıcı seçimi)
 - Yönetici badge (Y) ve mod badge (tooltip ile açıklama)
 - Header yeniden tasarlandı: ikon butonlar, kompakt düzen, ₺ logosu
-- Session'lar dosyaya kaydediliyor (sunucu restart'a dayanıklı)
 - Cookie + localStorage ile çift katmanlı oturum koruması
 - Socket.io auth middleware ile otomatik yeniden bağlanma
 - PWA desteği: ana ekrana eklenebilir, offline cache
+
+## v1.3 — SQLite ve Oturum Yönetimi
+
+- SQLite veritabanına geçiş (sunucu restart'a dayanıklı kalıcı veri)
+- 1 günlük TTL: masalar oluşturulduktan 24 saat sonra otomatik silinir
+- Masa sahibi oturumu sonlandırabilir (tüm kullanıcılar çıkarılır, masa silinir)
+- Masa sahibi kişileri masadan çıkarabilir (onay ile)
+- Çıkarılan kullanıcı otomatik login ekranına yönlendirilir

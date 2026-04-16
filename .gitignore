@@ -1,2 +1,5 @@
 node_modules/
 sessions.json
+*.db
+*.db-wal
+*.db-shm
